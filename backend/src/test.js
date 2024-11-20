@@ -19,7 +19,7 @@ function createToken(){
         email:"test",
         password: "hashPassword",
     } 
-    const registerToken = jwt.sign({newAccount}, process.env.JWT_REGISTER_SECRET, {expiresIn: "30m"})
+    const registerToken = jwt.sign({newAccount}, process.env.JWT_REGISTER_SECRET, {expiresIn: "30m", encoding: 'utf8'})
     console.log(registerToken)
 }
 
@@ -30,15 +30,10 @@ function verifyToken(token){
     });
     // console.log(data)
 }
-async function test(){
+async function test(payload){
 
-    const newAccount = {
-        userName,
-        email,
-        password: hashPassword,
-    } 
-    const registerToken = jwt.sign({newAccount}, process.env.JWT_REGISTER_SECRET, {expiresIn: "30m"})
-    console.log(registerToken)
+    const data = Buffer.from(payload, 'base64').toString('utf8')
+    console.log(data)
 }
 async function testRedis(){
     await client.hSet('user-session:123', {
@@ -87,8 +82,8 @@ function encryptData(data) {
   }
   
 // testRedis()
-// test()
-// createToken()
+// test("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuZXdBY2NvdW50Ijp7InVzZXJOYW1lIjoidGVzdCIsImVtYWlsIjoidGVzdCIsInBhc3N3b3JkIjoiaGFzaFBhc3N3b3JkIn0sImlhdCI6MTczMTQ2NTc5MCwiZXhwIjoxNzMxNDY3NTkwfQ")
+createToken()
 // verifyToken("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuZXdBY2NvdW50Ijp7InVzZXJOYW1lIjoidGVzdCIsImVtYWlsIjoidGVzdCIsInBhc3N3b3JkIjoiaGFzaFBhc3N3b3JkIn0sImlhdCI6MTczMDg4MzU2NCwiZXhwIjoxNzMwODg1MzY0fQ.zZ2GNnvOXj2daQiOGPTSwxHlAuTdP_wkDXLVsRje5kE")
 // encryptData(JSON.stringify({userName: "test"}))
-decryptData("bde5a32e97e657fd8a7cdfaa47779dee6aa40a7f3793740dec47da942e3585cf","c65f5c7c1daedc2798a9d85cf68281b7")
+// decryptData("bde5a32e97e657fd8a7cdfaa47779dee6aa40a7f3793740dec47da942e3585cf","c65f5c7c1daedc2798a9d85cf68281b7")

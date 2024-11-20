@@ -2,7 +2,7 @@ import express from "express"
 
 import {authenticateToken} from "../middlewares/authMiddleware.js"
 import { register, verifyEmailRegister, verifyEmail, changeEmail,
-     resendOTP, login, add2FA, verify2FA, change2FA, refreshToken,
+      login, add2FA, verify2FA, change2FA, refreshToken,
       logout, verifyKYC, changePassword, forgotPassword, resetPassword } from "../controllers/authController.js"
 
 const RouteAuth = express.Router()
@@ -12,8 +12,7 @@ RouteAuth.route('/verifyEmailRegister/:token').post(verifyEmailRegister)
 RouteAuth.route('/login').post(login)
 RouteAuth.route('/logout').post(authenticateToken,logout)
 RouteAuth.route('/refreshToken').post(refreshToken)
-RouteAuth.route('/resendOTP').post(authenticateToken, resendOTP)
-RouteAuth.route('/verifyEmail').post(authenticateToken, verifyEmail)
+RouteAuth.route('/verifyEmail/:token').post(authenticateToken, verifyEmail)
 RouteAuth.route('/changeEmail').post(authenticateToken, changeEmail)
 RouteAuth.route('/verifyKYC').post(authenticateToken, verifyKYC)
 RouteAuth.route('/add2FA').post(authenticateToken, add2FA)

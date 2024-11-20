@@ -37,9 +37,10 @@ export async function register(req, res, next) {
             email,
             password: hashPassword,
         }
-        const registerToken = jwt.sign({newAccount}, process.env.JWT_REGISTER_SECRET, {expiresIn: "30m"})
+        const {iv, encryptedData} = encryptData(JSON.stringify(newAccount))
+        const registerToken = jwt.sign({iv, encryptedData}, process.env.JWT_REGISTER_SECRET, {expiresIn: "30m"})
 
-        const html = `<h2>Verify email:</h2><br /><a href= http/localhost:4000/api/auth/verifyEmailRegister/${registerToken}>Click here</a>`
+        const html = `<h2>Verify email:</h2><br /><a href= http://localhost:4000/api/auth/verifyEmailRegister/${registerToken}>Click here</a>`
         const subject = "Verify email"
         await sendMail({email, subject, html})
 
@@ -59,44 +60,47 @@ export async function verifyEmailRegister(req, res, next){
         if(!token){
             throw new ErrorHandler("Bad request", 400)
         }
-        let newAccount
+        let data = {}
         jwt.verify(token, process.env.JWT_REGISTER_SECRET, (err, decoded) => {
             if(err) return res.status(400).send(err)
-            newAccount = decoded.newAccount
+            data = decoded
         })
-        const {userName, email, password} = newAccount
-        console.log({...newAccount})
-        // await Account.create({
-        //     ... newAccount
-        // })
+        const newAccount = await decryptData(data.encryptedData, data.iv)
+        await Account.create({
+            ... newAccount
+        })
+        return res.status(200).json({
+            success: true,
+            message: "Verify email successfully",
+        })
     }
     catch(err){
         next(err)
     }
 }
 
-export async function resendOTP(req, res, next) {
-    try{
-    const {accountId} = req
-    const auth =  await Auth.findById(accountId)
-    if(!auth){
-        throw new ErrorHandler("Invalid token", 400)
-    }
-    const {otp, otpExpire} = createOTP()
-    const email = auth.email
-    await auth.updateOne({
-        otp,
-        otpExpire,
-    })
-    const html = `<h2>Register code:</h2><br /><blockquote>${otp}</blockquote>`
-    const subject = "Confirm email"
-    await sendMail({email, subject, html})
-    return res.status(200).json({message:"send mail otp success"})
-    }
-    catch(err){
-        next(err)
-    }
-}
+// export async function resendOTP(req, res, next) {
+//     try{
+//     const {accountId} = req
+//     const auth =  await Auth.findById(accountId)
+//     if(!auth){
+//         throw new ErrorHandler("Invalid token", 400)
+//     }
+//     const {otp, otpExpire} = createOTP()
+//     const email = auth.email
+//     await auth.updateOne({
+//         otp,
+//         otpExpire,
+//     })
+//     const html = `<h2>Register code:</h2><br /><blockquote>${otp}</blockquote>`
+//     const subject = "Confirm email"
+//     await sendMail({email, subject, html})
+//     return res.status(200).json({message:"send mail otp success"})
+//     }
+//     catch(err){
+//         next(err)
+//     }
+// }
 
 
 export async function verifyKYC(req, res, next){
@@ -122,30 +126,46 @@ export async function verifyKYC(req, res, next){
     }
 }
 
+export async function changeEmail(req, res, next) {
+    try{
+        const {newEmail} = req.body
+        if(!newEmail){
+            throw new ErrorHandler("Bad request", 400)
+        }
+        console.log(newEmail)
+        const exsitedEmail = await Account.findOne({email: newEmail})
+        if(exsitedEmail){
+            throw new ErrorHandler("Email exsited", 400)
+        }
+        const token = jwt.sign({newEmail}, process.env.JWT_REGISTER_SECRET, {expiresIn: "30m"}) 
+        const html = `<h2>Verify email:</h2><br /><a href= http://localhost:4000/api/auth/verifyEmail/${token}>Click here</a>`
+        const subject = "Confirm email"
+        await sendMail({email: newEmail, subject, html})
+        return res.status(200).json({message: "send mail otp success"})
+        }
+    catch(err){
+        next(err)
+    }
+}
+
 export async function verifyEmail(req, res, next){
     try{
         const {accountId} = req
-        const { reqOTP } = req.body;
-        if(!reqOTP){
+        const { token } = req.params;
+        if(!token){
             throw new ErrorHandler("Bad request", 400)
         }
-        const auth =  await Auth.find({accountId})
-        if(!auth){
-            throw new ErrorHandler("Invalid token", 400)
-        }
-        console.log(auth.otp)
-        if( reqOTP != auth.otp ){
-            throw new ErrorHandler("Invalit OTP", 400)
-        }
-        if(Date.now() > auth.otpExpire){
-            throw new ErrorHandler("OTP is expired", 400)
-        }
+        let email
+        jwt.verify(token, process.env.JWT_REGISTER_SECRET, (err, decoded) => {
+            if(err) return res.status(400).send(err)
+            email = decoded.newEmail
+        })
         const exsitedEmail = await Account.findOne({ email })
         if( exsitedEmail ){
             throw new ErrorHandler('Email already exsits', 400);
         }
         
-        await Account.findByIdAndUpdate(accountId, { email: auth.email })
+        await Account.findByIdAndUpdate(accountId, { email })
         return res.status(200).json({message: "verify email success"})
     }
     catch(err){
@@ -153,33 +173,6 @@ export async function verifyEmail(req, res, next){
     }
 }
 
-export async function changeEmail(req, res, next) {
-    try{
-        const {accountId} = req
-        const {newEmail} = req.body
-        if(!newEmail){
-            throw new ErrorHandler("Bad request", 400)
-        }
-        const exsitedEmail = await Account.findOne({email: newEmail})
-        if(exsitedEmail){
-            throw new ErrorHandler("Email exsited", 400)
-        }
-        const {otp, otpExpire} = createOTP()
-        const auth = await Auth.findById(accountId)
-        auth.updateOne({
-            email: newEmail,
-            otp,
-            otpExpire,
-        })
-        const html = `<h2>Register code:</h2><br /><blockquote>${otp}</blockquote>`
-        const subject = "Confirm email"
-        await sendMail({newEmail, subject, html})
-        return res.status(200).json({message: "send mail otp success"})
-        }
-    catch(err){
-        next(err)
-    }
-}
 
 export async function login(req, res, next){
     try{
