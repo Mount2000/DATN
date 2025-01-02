@@ -3,6 +3,7 @@ import jwt from "jsonwebtoken"
 import crypto from "crypto"
 import speakeasy from "speakeasy"
 import QRCode from "qrcode"
+import { ethers } from "ethers"
 
 export function validatePassword(password) {
   const minLength = 6;
@@ -27,7 +28,7 @@ export function validatePassword(password) {
 };
 
 export function createAccessToken(userId){
- return jwt.sign({ userId }, process.env.JWT_ACCESS_SECRET, { expiresIn: "1h" })
+ return jwt.sign({ userId }, process.env.JWT_ACCESS_SECRET, { expiresIn: "1d" })
 }
 
 export function createRefreshToken(userId){
@@ -88,4 +89,11 @@ export function decryptData(encryptedData, iv) {
   decrypted += decipher.final('utf8');
   
   return JSON.parse(decrypted)
+}
+
+export async function getBallance(address){
+  const provider = ethers.getDefaultProvider(process.env.TESTNET_RPC)
+  const balanceWei = await provider.getBalance(address)
+  const balanceEth = ethers.formatEther(balanceWei)
+  return balanceEth
 }

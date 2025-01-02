@@ -1,9 +1,11 @@
 import {ethers} from "ethers"
 import "dotenv/config"
 
-const provider = new ethers.JsonRpcProvider(process.env.HOLESKY_RPC)
-const address = process.env.CONTRACT_ADDRESS
-const abi = [
+export function platformContract(privateKey){
+  const provider = new ethers.JsonRpcProvider(process.env.TESTNET_RPC)
+  const wallet = new ethers.Wallet(privateKey, provider)
+  const address = process.env.CONTRACT_ADDRESS
+  const abi = [
     {
       "inputs": [],
       "stateMutability": "nonpayable",
@@ -103,19 +105,6 @@ const abi = [
         }
       ],
       "name": "RoleRevoked",
-      "type": "event"
-    },
-    {
-      "anonymous": false,
-      "inputs": [
-        {
-          "indexed": false,
-          "internalType": "address",
-          "name": "concert",
-          "type": "address"
-        }
-      ],
-      "name": "newConcert",
       "type": "event"
     },
     {
@@ -228,34 +217,6 @@ const abi = [
         }
       ],
       "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "address",
-          "name": "concertOwner",
-          "type": "address"
-        },
-        {
-          "internalType": "uint256",
-          "name": "timeSellStart",
-          "type": "uint256"
-        },
-        {
-          "internalType": "uint256",
-          "name": "timeEndConcert",
-          "type": "uint256"
-        },
-        {
-          "internalType": "uint256",
-          "name": "fee",
-          "type": "uint256"
-        }
-      ],
-      "name": "deployConcert",
-      "outputs": [],
-      "stateMutability": "nonpayable",
       "type": "function"
     },
     {
@@ -494,8 +455,14 @@ const abi = [
       "stateMutability": "payable",
       "type": "receive"
     }
-]
+  ]
+  
+  return new ethers.Contract(address, abi, wallet)
+}
 
-const platformContract = new ethers.Contract(address, abi, provider)
+export async function addUser(address) {
+  const contract = platformContract(process.env.PRIVATE_KEY)
+  const userRole = await contract.USER_ROLE()
+  await contract.grantRole(userRole, address)
+}
 
-export default platformContract

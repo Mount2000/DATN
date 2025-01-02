@@ -9,6 +9,7 @@ import { validatePassword, createOTP, createAccessToken, createRefreshToken,
      createAuthSecret, validate2FA, encryptData, decryptData } from "../utils/auth.js";
 import { ErrorHandler } from "../utils/errorHandle.js";
 import { sendMail } from "../utils/sendMail.js";
+import { addUser } from "../contracts/platform.js"
 
 export async function register(req, res, next) {
     try{
@@ -40,7 +41,7 @@ export async function register(req, res, next) {
         const {iv, encryptedData} = encryptData(JSON.stringify(newAccount))
         const registerToken = jwt.sign({iv, encryptedData}, process.env.JWT_REGISTER_SECRET, {expiresIn: "30m"})
 
-        const html = `<h2>Verify email:</h2><br /><a href= http://localhost:4000/api/auth/verifyEmailRegister/${registerToken}>Click here</a>`
+        const html = `<h2>Verify email:</h2><br /><a href= http://localhost:3000/verifyEmailRegister/${registerToken}>Click here</a>`
         const subject = "Verify email"
         await sendMail({email, subject, html})
 
@@ -62,12 +63,29 @@ export async function verifyEmailRegister(req, res, next){
         }
         let data = {}
         jwt.verify(token, process.env.JWT_REGISTER_SECRET, (err, decoded) => {
-            if(err) return res.status(400).send(err)
+            if(err) return res.status(401).send(err)
             data = decoded
         })
         const newAccount = await decryptData(data.encryptedData, data.iv)
+        const {email, userName, password} = newAccount
+        if(!email || !userName || !password){
+            throw new ErrorHandler("Bad request", 400)
+        }
+        const exsitedEmail = await Account.findOne({ email })
+        if( exsitedEmail ){
+            throw new ErrorHandler('Email already exsits', 400);
+        }
+        const exsitedUserName = await Account.findOne({ userName })
+        if( exsitedUserName ){
+            throw new ErrorHandler('User name already exsits', 400);
+        }
+        const wallet = ethers.Wallet.createRandom()
+        const {address, privateKey} = wallet
+        await addUser(address)
         await Account.create({
-            ... newAccount
+            ... newAccount,
+            address,
+            privateKey,
         })
         return res.status(200).json({
             success: true,
@@ -194,12 +212,15 @@ export async function login(req, res, next){
     const refreshToken = createRefreshToken(account._id)
 
     await account.updateOne({token: refreshToken})
-
-    res.cookie("refreshToken", refreshToken, { httpOnly: true, secure: true })
-    res.cookie("accessToken", accessToken, { httpOnly: true, secure: true })
+    res.cookie("accessToken", accessToken, { httpOnly: true, secure: true, sameSite: 'None'})
+    res.cookie("refreshToken", refreshToken, { httpOnly: true, secure: true, sameSite: 'None'})
     return res.status(200).json({
         success: true,
-        message: "Login successfully"
+        message: "Login successfully",
+        metaData: {
+            userName: account.userName,
+            role: account.role,
+        },
     })
     }
     catch(err){
@@ -214,16 +235,21 @@ export async function refreshToken(req, res, next){
             throw new ErrorHandler("Refresh token does not exsit", 400)
         }
         const payload = jwt.verify(token, process.env.JWT_REFRESH_SECRET);
-        if(payload.exp < Date.now()){
-            throw new ErrorHandler("Expired token", 400)
+        if(err){
+            throw new ErrorHandler(err.message, 400)
         }
         const account = await Account.findById(payload.userId)
         if(refreshToken != account.token){
             throw new ErrorHandler("Invalid token", 400)
         }
-        const accessToken = jwt.sign({userId: payload.userId}, process.env.JWT_ACCESS_SECRET, {expiresIn: "1h"})
+        const accessToken = createAccessToken(payload.userId)
         res.cookie("accessToken", accessToken)
-        return res.status(200).json({success: true})
+        return res.status(200).json({
+            success: true,
+            metaData:{
+                accessToken
+            }
+        })
     }
     catch(err){
         next(err)
@@ -345,8 +371,8 @@ export async function forgotPassword(req, res, next){
         if(!account){
             throw new ErrorHandler("Email does not exsit", 400)
         }
-        const recoverPasswordToken = jwt.sign({userId: account._id}, process.env.JWT_RECOVER_PASSWORD_SECRET, {expiresIn: "15m"})
-        const html = `<h2>Reset password:</h2><br /><a href= http/localhost:4000/api/auth/resetPassword/${recoverPasswordToken}>Click here</a>`
+        const recoverPasswordToken = jwt.sign({userId: account._id}, process.env.JWT_REGISTER_SECRET, {expiresIn: "15m"})
+        const html = `<h2>Reset password:</h2><br /><a href= http://localhost:3000/resetPassword/${recoverPasswordToken}>Click here</a>`
         const subject = "Reset password"
         await sendMail({email, subject, html})
 
@@ -363,23 +389,47 @@ export async function forgotPassword(req, res, next){
 
 export async function resetPassword(req, res, next){
     try{
-        const {newPassword} = req.body
+        const {password} = req.body
         const {token} = req.params
-        if(!newPassword){
+        console.log(token)
+        if(!password){
             throw new ErrorHandler("Bad request", 400)
         }
         let accountId 
-        jwt.verify(token, process.env.JWT_RECOVER_PASSWORD_SECRET, (err, decoded) => {
+        jwt.verify(token, process.env.JWT_REGISTER_SECRET, (err, decoded) => {
             if(err){
                 return res.status(403).json({message: "Invalid token"})
             }
             accountId = decoded.userId
         })
-        const hashPassword = await argon2.hash(newPassword, process.env.PASSWORD_SECRET)
+        const hashPassword = await argon2.hash(password, process.env.PASSWORD_SECRET)
         await Account.findByIdAndUpdate(accountId, {password: hashPassword})
-        return res.status(200).send({
+        return res.status(200).json({
             success: true,
             message: "Change password successfully, please login again"
+        })
+    }
+    catch(err){
+        next(err)
+    }
+}
+
+export async function getUser(req, res, next) {
+    try{
+        const {accountId} = req
+        const account = await Account.findById(accountId)
+        if(!account){
+            throw new ErrorHandler("User not found", 400)
+        }
+        return res.status(200).json({
+            success: true,
+            metaData: {
+                userName: account.userName,
+                email: account.email,
+                address: account.address,
+                ballance: account.ballance,
+                role: account.role,
+            }
         })
     }
     catch(err){

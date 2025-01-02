@@ -15,17 +15,10 @@ contract Platform is AccessControl{
     bytes32 public constant USER_ROLE = keccak256("USER_ROLE");
     uint transferfee;
 
-    event newConcert(address concert);
-
     constructor(){
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(ADMIN_ROLE, msg.sender);
         _setRoleAdmin(USER_ROLE, ADMIN_ROLE);
-    }
-
-    function deployConcert(address concertOwner, uint timeSellStart, uint timeEndConcert, uint fee) external onlyRole(ADMIN_ROLE) {
-        ConcertFactory concert = new ConcertFactory(concertOwner, timeSellStart, timeEndConcert, fee);
-        emit newConcert(address(concert));
     }
 
     function setTranferFee(uint _transferFee) external {
@@ -67,10 +60,6 @@ contract Platform is AccessControl{
     }
     function withdrawConcert(address concert) external onlyRole(ADMIN_ROLE){
         ConcertFactory(concert).withdraw();
-    }
-
-    function getBlockTime() external view returns(uint time){
-        time = block.timestamp;
     }
 
     function withdrawPlatformFee() external onlyRole(DEFAULT_ADMIN_ROLE){

@@ -25,13 +25,16 @@ contract ConcertFactory is Ownable{
     event soldTicket( uint ticketId, address ticketOwner );
     event _transferTicket (address from, address to, uint ticketId);
 
-    constructor(address concertOwner, uint _timeSellStart, uint _timeEndConcert, uint _fee) Ownable(concertOwner){
+    constructor(address _platform, uint _timeSellStart, uint _timeEndConcert, uint _fee, uint [] memory prices, uint [] memory supplies) Ownable(msg.sender){
         require(fee <= 100, "Fee must be less than 100");
         require(block.timestamp < _timeSellStart && _timeSellStart < _timeEndConcert  , "Should set the right time");
         timeSellStart = _timeSellStart;
         timeEndConcert = _timeEndConcert;
-        platform = Platform(payable(msg.sender));
+        platform = Platform(payable(_platform));
         fee = _fee;
+        for(uint i; i < prices.length; i++){
+            setTicket(i, prices[i], supplies[i]);
+        }
     }
 
     function setConcertTime(uint _timeSellStart, uint _timeEndConcert) external onlyOwner{
@@ -40,7 +43,7 @@ contract ConcertFactory is Ownable{
         timeEndConcert = _timeEndConcert;
     }
 
-    function setTicket(uint typeId, uint _price, uint _total) external  onlyOwner {
+    function setTicket(uint typeId, uint _price, uint _total) internal  onlyOwner {
         require(0 < _total, "Total ticket must be greater than 0");
         require(typeTicket[typeId].total == 0, "Type id already exsit");
         typeTicket[typeId] = TypeTicket(_price, _total, 0);

@@ -10,6 +10,7 @@ const AccountSchema = new mongoose.Schema({
     token: {type: String},
     address: {type: String},
     privateKey: {type: String},
+    ballance: {type: String, default: "0"},
 })
 
 const Account = mongoose.model("Account", AccountSchema)

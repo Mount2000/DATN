@@ -6,8 +6,8 @@ require("dotenv").config()
 module.exports = {
   solidity: "0.8.24",
   networks: {
-    holesky:{
-      url: "https://ethereum-holesky-rpc.publicnode.com",
+    amoy:{
+      url: "https://polygon-amoy.drpc.org",
       accounts: [process.env.PRIVATE_KEY],
     }
   }

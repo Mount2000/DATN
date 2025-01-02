@@ -5,7 +5,8 @@ import crypto from "crypto"
 import "dotenv/config"
 import Account from "./models/accountModel.js"
 import { createClient } from 'redis';
-
+import { addUser } from "./contracts/platform.js"
+import { buyTicketContract, decodeData} from "./contracts/concert.js"
 // const client = createClient();
 
 // client.on('error', err => console.log('Redis Client Error', err));
@@ -80,10 +81,17 @@ function encryptData(data) {
     
     return JSON.parse(decrypted)
   }
+  async function buy() {
+    const tx = await buyTicketContract("0xbc4148a724af095492af3f8e1d10fa3d3822a55756feca3f30ba2559f100612c", "0x9ac552F5F135c63b6016A6581d0709e1a15A90F5", ["2","2","2","4"], {value: 14})
+    const result = await tx.wait()
+    console.log(result, tx)
+  }
   
 // testRedis()
 // test("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuZXdBY2NvdW50Ijp7InVzZXJOYW1lIjoidGVzdCIsImVtYWlsIjoidGVzdCIsInBhc3N3b3JkIjoiaGFzaFBhc3N3b3JkIn0sImlhdCI6MTczMTQ2NTc5MCwiZXhwIjoxNzMxNDY3NTkwfQ")
-createToken()
+// createToken()
 // verifyToken("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuZXdBY2NvdW50Ijp7InVzZXJOYW1lIjoidGVzdCIsImVtYWlsIjoidGVzdCIsInBhc3N3b3JkIjoiaGFzaFBhc3N3b3JkIn0sImlhdCI6MTczMDg4MzU2NCwiZXhwIjoxNzMwODg1MzY0fQ.zZ2GNnvOXj2daQiOGPTSwxHlAuTdP_wkDXLVsRje5kE")
 // encryptData(JSON.stringify({userName: "test"}))
 // decryptData("bde5a32e97e657fd8a7cdfaa47779dee6aa40a7f3793740dec47da942e3585cf","c65f5c7c1daedc2798a9d85cf68281b7")
+// addUser("0x4c7ebfa85f38cb76a3a90ce700037c6543ef2ff1")
+decodeData('0x40868d99cb1d73c51353248ca00e66f9815095aa25167e21761a588314e8b1b6')
