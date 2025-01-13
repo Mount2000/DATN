@@ -6,8 +6,10 @@ import Header from "../../components/header";
 import { useSelector } from "react-redux";
 import { FaCalendarCheck } from "react-icons/fa";
 import { FaLocationDot } from "react-icons/fa6";
+import { SiHiveBlockchain } from "react-icons/si";
 import { Flex, Image, Text, Heading, Button } from "@chakra-ui/react";
 import { dateToSecond } from "../../utils/helper";
+import Swal from 'sweetalert2'
 
 function ConcertDetail(){
     const navigate = useNavigate()
@@ -29,8 +31,8 @@ function ConcertDetail(){
     async function fetchBoughtTickets() {
         const result = await apiGetBoughtConcert(concertId)
         const {metadata} = result
+        setTicketsInCart(metadata.length)
         if(metadata){
-            setTicketsInCart(metadata.length)
         }
     }
     function addTicket(index){
@@ -57,7 +59,7 @@ function ConcertDetail(){
         fetchConcertDetail()
         fetchBoughtTickets()
     }, [])
-    console.log(ticketsInCart)
+    console.log((dateToSecond(data.timeStartSale) - 1000*60*60*24), Date.now(), dateToSecond(data.timeEndSale), account.userName)
     return (
         <Flex
         w="100vw"
@@ -82,17 +84,22 @@ function ConcertDetail(){
                             {data.title}
                         </Heading>
                         <Flex>
+                            <SiHiveBlockchain />
+                            <Text m="0px 4px"> {"Contract address: " + data.address} </Text>
+                        </Flex>
+                        <Flex>
                             <FaCalendarCheck />
-                            <Text m="0px 4px"> {data.timeStartConcert.split("T")[0]} </Text>
+                            <Text m="0px 4px"> {"Time start event: "+data.timeStartConcert.split("T")[0]} </Text>
                         </Flex>
                         <Flex>
                             <FaLocationDot />
-                            <Text m="0px 4px"> {data.location} </Text>
+                            <Text m="0px 4px"> {"Location: "+data.location} </Text>
                         </Flex>
                         <Flex>
                             <Text m="0px 2px"> Description: </Text>
                             <Text m="0px 4px"> {data.description} </Text>
                         </Flex>
+
                     </Flex>
                 </Flex>
                 <Flex
@@ -120,12 +127,14 @@ function ConcertDetail(){
                                         boxSize="28px"
                                         cursor="pointer"
                                         onClick={() => minusTicket(index)}
+                                        bg="#aaa"
                                         >-</Button>
-                                        <Text m="auto 4px">{cart[index]}</Text>
+                                        <Text m="auto 4px" boxSize="28px" textAlign="center">{cart[index]}</Text>
                                         <Button 
                                         boxSize="28px"
                                         cursor="pointer"
                                         onClick={() => addTicket(index)}
+                                        bg="#aaa"
                                         >+</Button>
                                     </Flex>
                                 </Flex>

@@ -1,4 +1,4 @@
-import { Button, Flex, Input, FormLabel, Text } from "@chakra-ui/react";
+import { Button, Flex, Input, FormLabel, Text, FormControl } from "@chakra-ui/react";
 import { useCallback, useState, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useDispatch } from 'react-redux'
@@ -36,17 +36,20 @@ function SignIn() {
   }
   const handleLogin = useCallback(async ()=>{
     const data = payload.current
-    console.log(data)
     const isValidate = validate()
     if(isValidate ){
       const result = await apiLogin(data)
-      if(result.success)
+      console.log(result)
+      if(result.status == 200)
       {
         navigate("/")
         dispatch(login({
           userName: result.metaData.userName,
           role: result.metaData.role,
         }))
+      }
+      else if(result.status == 201){
+        navigate("/verify2FALogin/"+result.metaData.token)
       }
       else{
         Swal.fire('Oops!', result.message, 'error')
@@ -59,30 +62,36 @@ function SignIn() {
     w="30vw"
     h="80vh"
     position="absolute"
-    top="10%"
+    top="10vh"
     right="35%"
-    bg="red"
+    p="12px 40px"
+    bg="#bbb"
+    borderRadius="5px"
+    border="1px solid black"
     alignItems="center"
     flexDirection="column"
+    gap="8px"
     >
       <Link to="/">
         <IoHome/>
       </Link>
       {payloadList.map((element, index) => {
         return(
-          <>
+          <FormControl w="100%">
           <FormLabel htmlFor={element}>{element.slice(0, 1).toUpperCase() + element.slice(1)}</FormLabel>
           <Input 
           key={index}
-          w="80%"
+          w="100%"
           h="36px"
+          p="0 4px"
+          borderRadius="4px"
           placeholder={element}
           type={element === "password" ? "password" : "text"}
           onChange={e => {payload.current[element] = e.target.value
           }}
           />
           {<Text>{invalidFields[element]}</Text>}
-          </>
+          </FormControl>
         )
       })}
       <Button
@@ -92,10 +101,10 @@ function SignIn() {
         Login
       </Button>
       <Link to="/register">
-        register
+        Register
       </Link>
       <Link to="/forgotPassword">
-        forgot password
+        Forgot password
       </Link>
     </Flex>
   )

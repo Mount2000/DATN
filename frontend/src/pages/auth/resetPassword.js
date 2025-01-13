@@ -51,11 +51,15 @@ function ResetPassword() {
     w="30vw"
     h="80vh"
     position="absolute"
-    top="10%"
+    top="10vh"
     right="35%"
-    bg="red"
+    p="12px 40px"
+    bg="#bbb"
+    borderRadius="5px"
+    border="1px solid black"
     alignItems="center"
     flexDirection="column"
+    gap="8px"
     >
       <Link to="/">
         <IoHome/>
@@ -66,8 +70,10 @@ function ResetPassword() {
           <FormLabel htmlFor={element}>{element.slice(0, 1).toUpperCase() + element.slice(1)}</FormLabel>
           <Input 
           key={index}
-          w="80%"
+          w="100%"
           h="36px"
+          p="0 4px"
+          borderRadius="4px"
           placeholder={element}
           type={element === "password" || element === "confirm password" ? "password" : "text"}
           onChange={e => {payload.current[element] = e.target.value
@@ -81,7 +87,7 @@ function ResetPassword() {
       cursor="pointer"
       onClick={handleResetPassword}
       >
-        reset password
+        Confirm
       </Button>
       <Link to="/login">
         Login

@@ -7,6 +7,7 @@ const TicketSchema = new mongoose.Schema({
     ticketId: {type: Number, require: true},
     price: {type: String, default: '0'},
     status: {type: Number, default: 0}, // not active: 0, listed:1 , actived: 2
+    qrcode: {type: String},
 })
 
 const Ticket = mongoose.model("tickets", TicketSchema)

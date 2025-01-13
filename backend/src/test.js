@@ -6,7 +6,11 @@ import "dotenv/config"
 import Account from "./models/accountModel.js"
 import { createClient } from 'redis';
 import { addUser } from "./contracts/platform.js"
-import { buyTicketContract, decodeData} from "./contracts/concert.js"
+import { buyTicketContract} from "./contracts/concert.js"
+import { getList } from "./contracts/platform.js"
+import { encryptData } from "./utils/auth.js"
+import { createAuthSecret } from "./utils/auth.js"
+import { getOwner } from "./contracts/concert.js"
 // const client = createClient();
 
 // client.on('error', err => console.log('Redis Client Error', err));
@@ -54,39 +58,9 @@ async function testRedis(){
     let userSession = await client.hGetAll('6723493059a693c694aad340');
     console.log(userSession);
 }
-function encryptData(data) {
-    const secretKey = crypto.createHash('sha256').update(process.env.JWT_REGISTER_SECRET).digest();
-    const algorithm = 'aes-256-cbc'; // AES encryption algorithm with CBC mode
-    const iv = crypto.randomBytes(16); // Generate a random 16-byte IV
-    const cipher = crypto.createCipheriv(algorithm, Buffer.from(secretKey, 'hex'), iv);
+
   
-    let encrypted = cipher.update(data, 'utf8', 'hex');
-    encrypted += cipher.final('hex');
-    
-    // Return the IV and encrypted data, both necessary for decryption
-    return {
-      iv: iv.toString('hex'),
-      encryptedData: encrypted
-    }
-  }
-  
-  // Function to decrypt data
-  function decryptData(encryptedData, iv) {
-    const secretKey = crypto.createHash('sha256').update(process.env.JWT_REGISTER_SECRET).digest()
-    const algorithm = 'aes-256-cbc';
-    const decipher = crypto.createDecipheriv(algorithm, Buffer.from(secretKey, 'hex'), Buffer.from(iv, 'hex'));
-  
-    let decrypted = decipher.update(encryptedData, 'hex', 'utf8');
-    decrypted += decipher.final('utf8');
-    
-    return JSON.parse(decrypted)
-  }
-  async function buy() {
-    const tx = await buyTicketContract("0xbc4148a724af095492af3f8e1d10fa3d3822a55756feca3f30ba2559f100612c", "0x9ac552F5F135c63b6016A6581d0709e1a15A90F5", ["2","2","2","4"], {value: 14})
-    const result = await tx.wait()
-    console.log(result, tx)
-  }
-  
+
 // testRedis()
 // test("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuZXdBY2NvdW50Ijp7InVzZXJOYW1lIjoidGVzdCIsImVtYWlsIjoidGVzdCIsInBhc3N3b3JkIjoiaGFzaFBhc3N3b3JkIn0sImlhdCI6MTczMTQ2NTc5MCwiZXhwIjoxNzMxNDY3NTkwfQ")
 // createToken()
@@ -94,4 +68,4 @@ function encryptData(data) {
 // encryptData(JSON.stringify({userName: "test"}))
 // decryptData("bde5a32e97e657fd8a7cdfaa47779dee6aa40a7f3793740dec47da942e3585cf","c65f5c7c1daedc2798a9d85cf68281b7")
 // addUser("0x4c7ebfa85f38cb76a3a90ce700037c6543ef2ff1")
-decodeData('0x40868d99cb1d73c51353248ca00e66f9815095aa25167e21761a588314e8b1b6')
+console.log(getOwner("0xbb32e4e01CC8d48ab01E08B260dd8031A17c9077", 4005))

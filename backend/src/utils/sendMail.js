@@ -15,7 +15,7 @@ export async function sendMail ({ email, subject, html }){
         auth: {
             user: adminEmail,
             pass: adminPassword
-        }
+        },
     });
 
 

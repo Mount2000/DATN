@@ -22,7 +22,9 @@ const ConcertSchema = new mongoose.Schema({
     totalTicketSupply: {type: Number, require: true},
     maxTicketPurchase: {type: Number, default: 50},
     seatmap: {type: String},
-    status: {type: Number, default: 2}, // pending: 2, accect: 1, reject: 0
+    status: {type: Number, default: 2}, // pending: 2, accept: 1, reject: 0
+    balance: {type: String},
+    isWithdraw: {type: Boolean, default: false},
 })
 
 const Concert = mongoose.model("concerts", ConcertSchema)

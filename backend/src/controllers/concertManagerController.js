@@ -1,4 +1,4 @@
-import { deployConcert, buyTicketContract, getEmit } from "../contracts/concert.js";
+import { deployConcert, buyTicketContract, getEmit, getTimestamp } from "../contracts/concert.js";
 import Concert from "../models/concertModel.js"
 import Ticket from "../models/ticketModel.js";
 import Account from "../models/accountModel.js";
@@ -13,9 +13,7 @@ export async function requestNewConcert(req, res, next){
         const tickets = JSON.parse(req.body.tickets)
         const {accountId} = req
         const images = req.file
-        console.log( tickets)
         const results = await uploadImages(images.path);
-        console.log(results)
         if(!title || !type || !description || !timeStartSale || !timeEndSale || !timeStartConcert || !tickets){
             throw new ErrorHandler("Missing concert infor", 400)
         }
@@ -26,7 +24,6 @@ export async function requestNewConcert(req, res, next){
         let totalTicketSupply = 0
         for (let i = 0; i < Object.keys(tickets).length; i++){
             const {name, price, supply} = tickets[i]
-            console.log(parseFloat(supply))
             if(!name || !price || !supply){
                 throw new ErrorHandler("Missing ticket infor", 400)
             }
@@ -38,7 +35,6 @@ export async function requestNewConcert(req, res, next){
             }
             totalTicketSupply += parseFloat(supply)
             concertTickets.push(newTicket)
-            console.log(concertTickets)
         }
 
         await Concert.create({
@@ -90,8 +86,9 @@ export async function setApproveConcert(req, res, next){
     else if(approveStatus === 1){
         const {privateKey} = owner
         const {timeStartSale, timeEndSale, tickets} = concert
+        const timestamp = await getTimestamp()
+        console.log(timestamp, timeStartSale.getTime()/1000, timeEndSale.getTime()/1000)
         const result = await deployConcert(privateKey, timeStartSale.getTime()/1000, timeEndSale.getTime()/1000, process.env.CONCERT_FEE, tickets)
-        console.log(typeof(result))
         if(!result.error){
             concertAddress = result.result
         }
@@ -146,20 +143,23 @@ export async function buyTicket(req, res, next) {
     try{
         const {cart} = req.body
         const {concertId} = req.params
-        const concer = await Concert.findById(concertId)
+        const concert = await Concert.findById(concertId)
         const account = req.account
-        const boughtTickets = await Ticket.find({owner: account._id})
-        const {address, tickets} = concer
+        const boughtTickets = await Ticket.find({owner: account._id, concertId: concertId})
+        const {address, tickets} = concert
         const {privateKey} = account
         let totalPayment = 0
         let handledCart = []
-        Object.keys(cart).forEach(element => {
-            for(let i = 0; i < cart[element]; i++){
-                handledCart.push(element)
+        Object.keys(cart).forEach((element) => {
+            if(cart[element]!=0){
+                for(let i = 0; i < cart[element]; i++){
+                    handledCart.push(element)
+                }
+                concert.tickets[element].sold += cart[element]
+                totalPayment += tickets[element].price * cart[element]
             }
-            totalPayment += tickets[element].price * cart[element]
         });
-        if(handledCart.length + boughtTickets.length > concer.maxTicketPurchase) throw new ErrorHandler("Bad request", 400)
+        if(handledCart.length + boughtTickets.length > concert.maxTicketPurchase) throw new ErrorHandler("Bad request", 400)
         const tx = await buyTicketContract(privateKey, address, handledCart, totalPayment)
         const receipt = await tx.wait()
         const ticketIds = await getEmit(receipt)
@@ -173,6 +173,7 @@ export async function buyTicket(req, res, next) {
             }
             newTickets.push(newTicket)
         })
+        await concert.save()
         await Ticket.insertMany(newTickets)
         return res.status(200).json({
             success: true

@@ -2,7 +2,7 @@ import argon2 from "argon2"
 import jwt from "jsonwebtoken"
 import "dotenv/config"
 import {ethers} from "ethers"
-
+import clientRedis from "../config/configRedis.js"
 import Account from "../models/accountModel.js"
 import Auth from "../models/authModel.js"
 import { validatePassword, createOTP, createAccessToken, createRefreshToken,
@@ -10,6 +10,8 @@ import { validatePassword, createOTP, createAccessToken, createRefreshToken,
 import { ErrorHandler } from "../utils/errorHandle.js";
 import { sendMail } from "../utils/sendMail.js";
 import { addUser } from "../contracts/platform.js"
+import speakeasy from "speakeasy"
+import QRCode from "qrcode"
 
 export async function register(req, res, next) {
     try{
@@ -207,27 +209,78 @@ export async function login(req, res, next){
     if(!result){
         throw new ErrorHandler("Wrong password", 400)
     }
-
-    const accessToken = createAccessToken(account._id)
-    const refreshToken = createRefreshToken(account._id)
-
-    await account.updateOne({token: refreshToken})
-    res.cookie("accessToken", accessToken, { httpOnly: true, secure: true, sameSite: 'None'})
-    res.cookie("refreshToken", refreshToken, { httpOnly: true, secure: true, sameSite: 'None'})
-    return res.status(200).json({
-        success: true,
-        message: "Login successfully",
-        metaData: {
-            userName: account.userName,
-            role: account.role,
-        },
-    })
+    if(account.authtSecret){
+        const token = jwt.sign({accountId: account._id}, process.env.JWT_REGISTER_SECRET, {expiresIn: "30m"}) 
+        return res.status(201).json({
+            success: true,
+            status: 201,
+            message: "Login successfully",
+            metaData: {
+                token,
+            },
+        })
+    }
+    else{
+        const accessToken = createAccessToken(account._id)
+        const refreshToken = createRefreshToken(account._id)
+    
+        await account.updateOne({token: refreshToken})
+        res.cookie("accessToken", accessToken, { httpOnly: true, secure: true, sameSite: 'None'})
+        res.cookie("refreshToken", refreshToken, { httpOnly: true, secure: true, sameSite: 'None'})
+        return res.status(200).json({
+            success: true,
+            status: 200,
+            message: "Login successfully",
+            metaData: {
+                userName: account.userName,
+                role: account.role,
+            },
+        })
+    }
     }
     catch(err){
         next(err)
     }
 }
 
+export async function verify2FALogin(req, res, next) {
+    try{
+        const {token, code} = req.body
+        if(!token || !code) throw new ErrorHandler("Bad request", 400)
+        let accountId
+        jwt.verify(token, process.env.JWT_REGISTER_SECRET, (err, decoded) => {
+            if(err) return res.status(400).send(err)
+            accountId = decoded.accountId
+        })
+        const account = await Account.findById(accountId)
+        if(!account) throw new ErrorHandler("Bad request", 400)
+        const verified = speakeasy.totp.verify({
+            secret: account.authtSecret,
+            encoding: 'base32',
+            token: code,
+        });
+        if(!verified){
+            throw new ErrorHandler("Faile to validate token", 400)
+        }
+        const accessToken = createAccessToken(account._id)
+        const refreshToken = createRefreshToken(account._id)
+    
+        await account.updateOne({token: refreshToken})
+        res.cookie("accessToken", accessToken, { httpOnly: true, secure: true, sameSite: 'None'})
+        res.cookie("refreshToken", refreshToken, { httpOnly: true, secure: true, sameSite: 'None'})
+        return res.status(200).json({
+            success: true,
+            message: "Login successfully",
+            metaData: {
+                userName: account.userName,
+                role: account.role,
+            },
+        })
+    }
+    catch(err){
+        next(err)
+    }
+}
 export async function refreshToken(req, res, next){
     try{
         const refreshToken = req.cookies.refreshToken
@@ -256,36 +309,17 @@ export async function refreshToken(req, res, next){
     }
 }
 
-export async function logout(req, res, next){
-    try{
-        const accessToken = req.header.authorization.split(' ')[1]
-        if(!accessToken){
-            throw new ErrorHandler("Access token does not exsit", 400)
-        }
-        const accountId = jwt.verify(accessToken, JWT_ACCESS_SECRET).userId
-        const success = await Account.updateOne({_id: accountId}, {token: null})
-        console.log(success)
-        if(!success){
-            throw new ErrorHandler("Fail to delete token", 400)
-        }
-        res.clearCookie('refreshToken')
-        res.clearCookie('accessToken')
-        return res.status(200).json({message: "Logged out successfully"})
-
-    }
-    catch(err){
-        next(err)
-    }
-}
-
 export async function add2FA(req, res, next){
     try{
-        const {accountId} = req
-        const {secretBase32, secretAscii, qrcode} = createAuthSecret()
-        
-        await Auth.findByIdAndUpdate(accountId, { authtSecret: secretAscii })
-
-        return res.status(200).json({secretBase32, qrcode})
+        const secret = speakeasy.generateSecret({ length: 20, name: 'Tickbit', });
+        const qrcode = await QRCode.toDataURL(secret.otpauth_url)
+        return res.status(200).json({
+            success: true,
+            metadata: {
+                secret,
+                qrcode,
+            }
+        })
     }
     catch(err){
         next(err)
@@ -295,18 +329,23 @@ export async function add2FA(req, res, next){
 export async function verify2FA(req, res, next){
     try{
         const {accountId} = req
-        const {token} = req.body
+        const {token, secret} = req.body
+        console.log(req.body)
         if(!token){
             throw new ErrorHandler("Bad request", 400)
         }
-        const auth = await Auth.findById(accountId)
-        const secretAscii = auth.newAuthtSecret
-        const tokenValidate = validate2FA({secretAscii, token})
-        if(!tokenValidate){
+        const verified = speakeasy.totp.verify({
+            secret: secret,
+            encoding: 'base32',
+            token: token,
+        });
+        if(!verified){
             throw new ErrorHandler("Faile to validate token", 400)
         }
-        await Account.findByIdAndUpdate(accountId, {authtSecret: secretAscii})
-        return res.status(200).json({message: "Verify 2FA successfully"})
+        await Account.findByIdAndUpdate(accountId, {authtSecret: secret})
+        return res.status(200).json({
+            success:true,
+            message: "Verify 2FA successfully"})
     }
     catch(err){
         next(err)
@@ -352,7 +391,8 @@ export async function changePassword(req, res, next){
         if(!result){
             throw new ErrorHandler("Wrong password", 400)
         }
-        await account.updateOne({password: newPassword})
+        const hashPassword = await argon2.hash(newPassword, process.env.PASSWORD_SECRET)
+        await account.updateOne({password: hashPassword})
         return res.status(200).send({success: true})
         
     }
@@ -435,4 +475,12 @@ export async function getUser(req, res, next) {
     catch(err){
         next(err)
     }
+}
+
+export async function logout(req, res, next) {
+    res.clearCookie("accessToken")
+    res.clearCookie("refreshToken")
+    return res.status(200).json({
+        success: true,
+    })
 }

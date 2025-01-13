@@ -6,6 +6,7 @@ import cors from "cors"
 import RouteAuth from "./routes/authRoute.js"
 import RouteUser from "./routes/userRoute.js"
 import RouteConcertManager from "./routes/concertManagerRoute.js"
+import RouteMarketplace from "./routes/marketplaceRoute.js"
 import connectDataBase from "./config/configMongoose.js"
 
 
@@ -27,7 +28,7 @@ app.get("/api", (req, res) => {
 app.use("/api/auth", RouteAuth)
 app.use("/api/user", RouteUser)
 app.use("/api/concertManager", RouteConcertManager)
-
+app.use("/api/marketplace", RouteMarketplace)
 
 app.listen(port, () => {
     console.log(`DATN app listening on port ${port}`)

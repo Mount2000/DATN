@@ -351,3 +351,21 @@ export async function getEmit(receipt, contractAddress) {
     }
     return ticketIds
 }
+
+export async function getTimestamp(){
+  const blockTimestamp = (await provider.getBlock()).timestamp;
+  return blockTimestamp
+}
+
+export async function active(privateKey, concertAddress, ticketId) {
+  const wallet = new ethers.Wallet(privateKey, provider)
+  const contract = new ethers.Contract(concertAddress, abi, wallet)
+  await contract.activeTicket(ticketId)
+}
+
+export async function getOwner(concertAddress, ticketId) {
+  const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
+  const contract = new ethers.Contract(concertAddress, abi, wallet)
+  const owner = await contract.ticketOwner(ticketId)
+  console.log(owner)
+}

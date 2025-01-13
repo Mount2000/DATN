@@ -1,6 +1,6 @@
-import {CardBody, Card, Text, Heading, Divider, Image, Flex, Icon, Input, Button} from "@chakra-ui/react"
+import {CardBody, Card, Text, Heading, Divider, Image, Flex, Input, Button, Grid, GridItem} from "@chakra-ui/react"
 import { useEffect, useState } from "react"
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { apiGetAllConcerts } from "../apis/concert"
 import {CiSearch} from "react-icons/ci"
 import { FaCalendarCheck } from "react-icons/fa";
@@ -8,20 +8,21 @@ import Header from "../components/header"
 import Footer from "../components/footer"
 
 function Home(){
-    const navigate = useNavigate()
     const concertType = ["All", "Music", "Sport", "Art", "Theater & Comedy", "Workshop", "Other"]
     const [concerts, setConcerts] = useState([])
     const [filterConcerts, setFilterConcerts] = useState([])
     const [select, setSelect] = useState(0)
     const [searchKey, setsearchKey] = useState("")
     const handleSearch = ()=>{
-        navigate("/concert?search=" + searchKey)
+        const data = concerts.filter(concert => (concert.title.toUpperCase()).includes(searchKey.toUpperCase()))
+        setFilterConcerts(data)
+        setSelect(0)
     }
     async function fetchConcertsData() {
         const result = await apiGetAllConcerts()
         if(result.success){
             setConcerts(result.metadata)
-            setFilterConcerts(result.metadata.filter(concert => concert.type == 0))
+            setFilterConcerts(result.metadata)
         }
     }
     useEffect( () => {
@@ -41,12 +42,12 @@ function Home(){
         <>
             <Flex
             w="100vw"
-            h="100vh"
+            minH="100vh"
             flexDirection="column"
             >
                 <Header />
                 <Flex
-                h="100%"
+                minH="90vh"
                 direction="column"
                 >
                 <Flex
@@ -70,7 +71,7 @@ function Home(){
                     p="0 8px"
                     ml="auto"
                     >
-                        <Icon as={CiSearch}/>
+                        <CiSearch />
                         <Input 
                         p="10px"
                         w="100%"
@@ -94,52 +95,55 @@ function Home(){
                         </Button>
                     </Flex>
                 </Flex>
-                {/* search */}
                 
-                <Flex
-                gap="20px"
-                h="100%"
-                >
-                {(filterConcerts ? filterConcerts : concerts).map((element, index) => {
+                <Grid templateColumns='repeat(4, 1fr)' p="10px">  
+                {(filterConcerts.length != 0 ? filterConcerts.map((element, index) => {
                     return(
-                        <Card 
+                        <GridItem
                         as = {Link}
                         to = {`/concert/` + element._id}
-                        textDecor="none"
-                        key={index}
-                        maxW='sm'
+                        background="#dddddd"
+                        m="20px 10px"
                         borderRadius="4px"
                         borderColor="black"
                         overflow="hidden"
-                        background="#dddddd"
+                        key={index}
+                        w="280px"
                         >
-                        <CardBody>
-                          <Image
-                            src={element.logo}
-                            alt='image'
-                            borderRadius='lg'
-                            boxSize="200px"
-                          />
-                          <Flex
-                           flexDirection="column"
-                           >
-                            <Heading 
-                            size='sm' 
-                            margin="0px"
-                            textAlign="center"
+                            <Card >
+                            <CardBody>
+                            <Image
+                                src={element.logo}
+                                alt='image'
+                                borderRadius='lg'
+                                boxSize="280px"
+                            />
+                            <Flex
+                            flexDirection="column"
                             >
-                                {element.title}
-                            </Heading>
-                            <Flex m="4px">
-                                <FaCalendarCheck/>
-                                <Text margin="0px 4px">{element.timeStartSale.split("T")[0]}</Text>
+                                <Heading 
+                                size='sm' 
+                                margin="0px"
+                                textAlign="center"
+                                >
+                                    {element.title}
+                                </Heading>
+                                <Flex m="4px">
+                                    <FaCalendarCheck/>
+                                    <Text margin="0px 4px">{element.timeStartSale.split("T")[0]}</Text>
+                                </Flex>
                             </Flex>
-                          </Flex>
-                        </CardBody>
-                        <Divider />
-                      </Card>)
-                })}
-                </Flex>
+                            </CardBody>
+                            <Divider />
+                            </Card>
+                        </GridItem>
+                      )
+                })
+                :
+                    <Text m="10px" fontSize="20px" > Do not have any event!</Text>
+            )
+            }
+                </Grid>
                 </Flex>
                 <Footer />
             </Flex>

@@ -1,9 +1,10 @@
-import { Button, Flex, Input, FormLabel, Text } from "@chakra-ui/react";
+import { Button, Flex, Input, FormLabel, Text, FormControl, FormErrorMessage } from "@chakra-ui/react";
 import { useCallback, useState, useRef } from "react";
 import { Link } from "react-router-dom";
 import { apiRegister } from "../../apis/auth";
 import { IoHome } from "react-icons/io5";
 import Swal from 'sweetalert2';
+import { camelToSpace } from "../../utils/helper";
 
 function SignUp() {
   
@@ -56,39 +57,45 @@ function SignUp() {
   return (
     <Flex
     w="30vw"
-    h="80vh"
+    minH="80vh"
     position="absolute"
-    top="10%"
+    top="10vh"
     right="35%"
-    bg="red"
+    p="12px 40px"
+    bg="#bbb"
+    borderRadius="5px"
+    border="1px solid black"
     alignItems="center"
     flexDirection="column"
+    gap="8px"
     >
       <Link to="/">
         <IoHome/>
       </Link>
       {payloadList.map((element, index) => {
         return(
-          <>
-          <FormLabel htmlFor={element}>{element.slice(0, 1).toUpperCase() + element.slice(1)}</FormLabel>
+          <FormControl w="100%">
+          <FormLabel htmlFor={element}>{camelToSpace(element)}</FormLabel>
           <Input 
           key={index}
-          w="80%"
+          w="100%"
           h="36px"
-          placeholder={element}
+          p="0px 4px"
+          borderRadius="4px"
+          placeholder={camelToSpace(element)}
           type={element === "password" || element === "confirm password" ? "password" : "text"}
           onChange={e => {payload.current[element] = e.target.value
           }}
           />
           {<Text>{invalidFields[element]}</Text>}
-          </>
+          </ FormControl>
         )
       })}
       <Button
       cursor="pointer"
       onClick={handleRegister}
       >
-        register
+        Register
       </Button>
       <Link to="/login">
         Login

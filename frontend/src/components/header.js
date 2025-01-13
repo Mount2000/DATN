@@ -3,13 +3,22 @@ import { useSelector } from 'react-redux'
 import { Link } from "react-router-dom"
 import { useEffect } from "react"
 import { apiGetUser } from "../apis/user"
+import { apiLogout } from "../apis/auth"
 import { useDispatch } from 'react-redux'
-import { login } from '../store/accountSlice'
+import { login, logout } from '../store/accountSlice'
 
 
 function Header() {
     const dispatch = useDispatch()
     const account = useSelector((state) => state.account)
+
+    async function handleLogout(){
+        const result = await apiLogout()
+        console.log(result)
+        if(result.success){
+            dispatch(logout())
+        }
+    }
 
     async function fetchUser() {
         console.log("role", account)
@@ -94,7 +103,7 @@ function Header() {
                         <MenuItem as={Link} to="/AccountDetail" _hover={{bg:"#aaaaaa"}}>Profile</MenuItem>
                         <MenuItem as={Link} to="/MyTickets" _hover={{bg:"#aaaaaa"}}>My tickets</MenuItem>
                         <MenuItem as={Link} to="/MyConcerts" _hover={{bg:"#aaaaaa"}}>My concerts</MenuItem>
-                        <MenuItem as={Link} to="/Logout" _hover={{bg:"#aaaaaa"}}>Log out</MenuItem>
+                        <MenuItem as={Link} to="/Login" onClick={handleLogout} _hover={{bg:"#aaaaaa"}}>Log out</MenuItem>
                         </MenuList>
                     </Menu> :
                     <Link to="/login" alignContent="center"> 

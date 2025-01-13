@@ -466,3 +466,39 @@ export async function addUser(address) {
   await contract.grantRole(userRole, address)
 }
 
+export async function withdraw(concertAddress) {
+  const contract = platformContract(process.env.PRIVATE_KEY)
+  await contract.withdrawConcert(concertAddress)
+}
+
+export async function list(privateKey, concertAddress, ticketId, price) {
+  const contract = platformContract(privateKey)
+  await contract.listTicket(concertAddress, ticketId, price)
+}
+
+export async function unlist(concertAddress, ticketId) {
+  const contract = platformContract(process.env.PRIVATE_KEY)
+  await contract.unlistTicket(concertAddress, ticketId)
+}
+
+export async function buyList(privateKey, concertAddress, ticketId, price) {
+  const contract = platformContract(privateKey)
+  await contract.buyTicket(concertAddress, ticketId, {value: price, gasLimit: 100000,})
+}
+
+export async function getList(concertAddress, ticketId) {
+  const contract = platformContract(process.env.PRIVATE_KEY)
+  const result = await contract.listDetail(concertAddress, ticketId)
+  return result
+}
+
+export async function withdrawAcountBallance(privateKey,recipient, amount) {
+  const provider = new ethers.JsonRpcProvider(process.env.TESTNET_RPC)
+  const wallet = new ethers.Wallet(privateKey, provider)
+  const tx = {
+    to: recipient,
+    value: ethers.parseEther(amount),
+  }
+  const sendTx = await wallet.sendTransaction(tx);
+  await sendTx.wait()
+}

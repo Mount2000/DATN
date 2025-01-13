@@ -1,4 +1,4 @@
-import { Button, Flex, Input, FormLabel, Text } from "@chakra-ui/react";
+import { Button, Flex, Input, FormLabel, Text, FormControl } from "@chakra-ui/react";
 import { useCallback, useState, useRef } from "react";
 import { Link } from "react-router-dom";
 import { apiForgotPassword } from "../../apis/auth";
@@ -42,39 +42,45 @@ function ForgotPassword() {
   return (
     <Flex
     w="30vw"
-    h="80vh"
+    minH="80vh"
     position="absolute"
-    top="10%"
+    top="10vh"
     right="35%"
-    bg="red"
+    p="12px 40px"
+    bg="#bbb"
+    borderRadius="5px"
+    border="1px solid black"
     alignItems="center"
     flexDirection="column"
+    gap="8px"
     >
       <Link to="/">
         <IoHome/>
       </Link>
       {payloadList.map((element, index) => {
         return(
-          <>
-          <FormLabel htmlFor={element}>{element.slice(0, 1).toUpperCase() + element.slice(1)}</FormLabel>
-          <Input 
-          key={index}
-          w="80%"
-          h="36px"
-          placeholder={element}
-          type={element === "password" || element === "confirm password" ? "password" : "text"}
-          onChange={e => {payload.current[element] = e.target.value
-          }}
-          />
-          {<Text>{invalidFields[element]}</Text>}
-          </>
+          <FormControl w="100%">
+            <FormLabel htmlFor={element}>{element.slice(0, 1).toUpperCase() + element.slice(1)}</FormLabel>
+            <Input 
+            key={index}
+            w="100%"
+            h="36px"
+            p="0px 4px"
+            borderRadius="4px"
+            placeholder={element}
+            type={element === "password" || element === "confirm password" ? "password" : "text"}
+            onChange={e => {payload.current[element] = e.target.value
+            }}
+            />
+            {<Text>{invalidFields[element]}</Text>}
+          </ FormControl>
         )
       })}
       <Button
       cursor="pointer"
       onClick={handleForgotPassword}
       >
-        forgot password
+        Confirm
       </Button>
       <Link to="/login">
         Login

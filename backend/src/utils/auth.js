@@ -63,10 +63,10 @@ export function validate2FA({secretAscii, token}){
   return tokenValidate
 }
 
-export function encryptData(data) {
+export function encryptData(data, createdIV) {
   const secretKey = crypto.createHash('sha256').update(process.env.JWT_REGISTER_SECRET).digest();
   const algorithm = 'aes-256-cbc'; // AES encryption algorithm with CBC mode
-  const iv = crypto.randomBytes(16); // Generate a random 16-byte IV
+  const iv = createdIV ? createdIV : Buffer.from(input, 'utf-8'); // Generate a random 16-byte IV
   const cipher = crypto.createCipheriv(algorithm, Buffer.from(secretKey, 'hex'), iv);
 
   let encrypted = cipher.update(data, 'utf8', 'hex');
@@ -96,4 +96,15 @@ export async function getBallance(address){
   const balanceWei = await provider.getBalance(address)
   const balanceEth = ethers.formatEther(balanceWei)
   return balanceEth
+}
+
+export function to16ByteBuffer(input) {
+  const buffer = Buffer.from(input, 'utf-8');
+
+  if (buffer.length > 16) {
+      return buffer.slice(0, 16); // Cắt nếu dài hơn 16 byte
+  } else if (buffer.length < 16) {
+      return Buffer.concat([buffer, Buffer.alloc(16 - buffer.length)]); // Thêm byte 0 nếu ngắn hơn
+  }
+  return buffer;
 }

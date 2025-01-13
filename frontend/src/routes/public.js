@@ -1,9 +1,11 @@
 
 import Home from "../pages/home";
 import { Marketplace } from "../pages/marketplace";
+import MarketDetail from "../pages/marketDetail";
 import RequestNewEvent from "../pages/admin/requestNewConcert";
 
 import SignIn  from "../pages/auth/signin";
+import Verify2FALogin from "../pages/auth/verify2FALogin";
 import SignUp from "../pages/auth/signup";
 import ForgotPassword from "../pages/auth/fogotPassword";
 import VerifyEmailRegister from "../pages/auth/verifyEmailRegister";
@@ -21,8 +23,10 @@ export const routes = [
     { path:"/", page: Home},
 
     { path:"/marketplace", page: Marketplace},
+    { path:"/marketdetail/:concertId", page: MarketDetail},
 
     { path:"/login", page: SignIn},
+    { path:"/verify2FALogin/:token", page: Verify2FALogin},
     { path:"/register", page: SignUp},
     { path:"/forgotPassword", page: ForgotPassword},
     { path:"/resetPassword/:token", page: ResetPassword},
